@@ -1,42 +1,38 @@
 import NextAuth from "next-auth"
-import type { Profile } from "next-auth"
-
-// Provider Steam customizado para NextAuth v5
-const SteamProvider = {
-  id: "steam",
-  name: "Steam",
-  type: "oauth",
-  authorization: {
-    url: "https://steamcommunity.com/openid/login",
-    params: {
-      "openid.ns": "http://specs.openid.net/auth/2.0",
-      "openid.mode": "checkid_setup",
-      "openid.return_to": `${process.env.NEXTAUTH_URL}/api/auth/callback/steam`,
-      "openid.realm": process.env.NEXTAUTH_URL,
-      "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-      "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-    },
-  },
-  async profile(profile: Profile & { steamid?: string }) {
-    return {
-      id: profile.steamid || profile.sub || "",
-      name: profile.name || "Steam User",
-      image: profile.image || null,
-      steamid: profile.steamid || profile.sub || "",
-    }
-  },
-  clientId: "steam",
-  clientSecret: process.env.STEAM_API_KEY || "",
-}
+import Credentials from "next-auth/providers/credentials"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [SteamProvider as any],
+  providers: [
+    Credentials({
+      id: "steam",
+      name: "Steam",
+      async authorize(credentials) {
+        try {
+          // Get Steam OpenID response from credentials
+          const steamid = (credentials?.steamid as string) || ""
+          const name = (credentials?.name as string) || ""
+          const avatar = (credentials?.avatar as string) || ""
+
+          if (!steamid) return null
+
+          return {
+            id: steamid,
+            name,
+            image: avatar,
+            steamid,
+          }
+        } catch (error) {
+          console.error("Steam auth error:", error)
+          return null
+        }
+      },
+    }),
+  ],
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, profile }) {
-      if (profile) {
-        const steamid = (profile as any)?.steamid || (profile as any)?.sub || token.sub
-        ;(token as any).steamid = steamid
+    async jwt({ token, user }) {
+      if (user) {
+        ;(token as any).steamid = (user as any).steamid || user.id
       }
       return token
     },
@@ -46,7 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: "/auth/signin",
     error: "/auth/error",
   },
+  secret: process.env.NEXTAUTH_SECRET,
 })
