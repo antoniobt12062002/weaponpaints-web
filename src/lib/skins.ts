@@ -1,4 +1,5 @@
 import skinsJson from "../../data/skins_en.json"
+import glovesJson from "../../data/gloves_en.json"
 
 export type SkinRow = {
   weapon_defindex: number
@@ -6,6 +7,13 @@ export type SkinRow = {
   paint: number
   paint_name: string
   image: string
+}
+
+export type GloveRow = {
+  weapon_defindex: number
+  paint: string | number
+  image: string
+  paint_name: string
 }
 
 export type WeaponCatalog = Record<
@@ -37,6 +45,22 @@ export function buildCatalog() {
   }
 
   return { weapons, skinsByWeapon }
+}
+
+export function buildGlovesCatalog() {
+  const rows = glovesJson as unknown as GloveRow[]
+  const gloves: SkinsByWeapon = {}
+
+  for (const row of rows) {
+    if (!gloves[row.weapon_defindex]) gloves[row.weapon_defindex] = {}
+    const paintId = typeof row.paint === "number" ? row.paint : parseInt(row.paint)
+    gloves[row.weapon_defindex][paintId] = {
+      paint_name: row.paint_name,
+      image_url: row.image,
+    }
+  }
+
+  return gloves
 }
 
 export const WEAR_PRESETS = [

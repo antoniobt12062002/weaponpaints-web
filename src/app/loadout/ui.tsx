@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { TEAM, WEAR_PRESETS, buildCatalog } from "@/lib/skins"
+import { TEAM, WEAR_PRESETS, buildCatalog, buildGlovesCatalog } from "@/lib/skins"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -26,6 +26,7 @@ type Team = 2 | 3
 
 type TeamLoadout = {
   knife: string | null
+  gloves: number | null
   skins: Record<number, { weapon_paint_id: number; weapon_wear: number; weapon_seed: number }>
 }
 
@@ -48,6 +49,7 @@ export default function LoadoutClient() {
   const [weaponFilter, setWeaponFilter] = useState("")
 
   const { weapons, skinsByWeapon } = useMemo(() => buildCatalog(), [])
+  const glovesSkinsByWeapon = useMemo(() => buildGlovesCatalog(), [])
 
   useEffect(() => {
     let active = true
@@ -107,6 +109,27 @@ export default function LoadoutClient() {
     })
   }
 
+  async function saveGloves(targetTeam: Team, weapon_defindex: number) {
+    const r = await fetch("/api/loadout/gloves", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weapon_team: targetTeam, weapon_defindex }),
+    })
+    if (!r.ok) throw new Error("save_gloves_failed")
+
+    setData((prev) => {
+      if (!prev) return prev
+      const key = targetTeam === TEAM.T ? "2" : "3"
+      return {
+        ...prev,
+        loadout: {
+          ...prev.loadout,
+          [key]: { ...prev.loadout[key], gloves: weapon_defindex },
+        },
+      }
+    })
+  }
+
   async function saveWeapon(targetTeam: Team, payload: { weapon_defindex: number; weapon_paint_id: number; weapon_wear: number; weapon_seed: number }) {
     const r = await fetch("/api/loadout/weapon", {
       method: "POST",
@@ -157,9 +180,9 @@ export default function LoadoutClient() {
     <main className="mx-auto max-w-6xl p-6 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Loadout</h1>
+          <h1 className="text-2xl font-semibold">Loadout - PeladosCM</h1>
           <p className="text-sm text-muted-foreground">
-            Alterações aplicam somente ao time selecionado (weapon_team). T = 2, CT = 3.
+            Configuração de skins para o servidor da comunidade PeladosCM. Alterações aplicam somente ao time selecionado.
           </p>
         </div>
       </div>
@@ -174,20 +197,28 @@ export default function LoadoutClient() {
       <KnifeCard
         team={team}
         knife={current.knife}
-        onSave={async (knife, applyBoth) => {
+        onSave={async (knife) => {
           try {
-            if (applyBoth) {
-              await saveKnife(TEAM.T, knife)
-              await saveKnife(TEAM.CT, knife)
-              toast.success("Knife salva para T e CT")
-            } else {
-              await saveKnife(team, knife)
-              toast.success(team === TEAM.T ? "Knife salva para T" : "Knife salva para CT")
-            }
+            await saveKnife(team, knife)
+            toast.success(team === TEAM.T ? "Knife salva para T" : "Knife salva para CT")
           } catch {
             toast.error("Erro ao salvar knife")
           }
         }}
+      />
+
+      <GlovesCard
+        team={team}
+        gloves={current.gloves}
+        onSave={async (weapon_defindex) => {
+          try {
+            await saveGloves(team, weapon_defindex)
+            toast.success(team === TEAM.T ? "Gloves salvas para T" : "Gloves salvas para CT")
+          } catch {
+            toast.error("Erro ao salvar gloves")
+          }
+        }}
+        glovesSkins={glovesSkinsByWeapon[5032] ?? {}}
       />
 
       <Card>
@@ -245,7 +276,7 @@ function KnifeCard({
 }: {
   team: Team
   knife: string | null
-  onSave: (knife: string, applyBoth: boolean) => Promise<void>
+  onSave: (knife: string) => Promise<void>
 }) {
   const knifeOptions = [
     { label: "Default knife", value: "weapon_knife" },
@@ -268,7 +299,7 @@ function KnifeCard({
       <CardHeader>
         <CardTitle>Knife</CardTitle>
         <CardDescription>
-          Time atual: {team === TEAM.T ? "T" : "CT"}. weapon_team={team}. Salva apenas neste time.
+          Time atual: {team === TEAM.T ? "T" : "CT"}. Salva apenas neste time.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -288,19 +319,10 @@ function KnifeCard({
           <Button
             variant="default"
             onClick={async () => {
-              await onSave(selected, false)
+              await onSave(selected)
             }}
           >
             Salvar para {team === TEAM.T ? "T" : "CT"}
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              await onSave(selected, true)
-            }}
-          >
-            Aplicar para ambos
           </Button>
         </div>
       </CardContent>
@@ -355,6 +377,108 @@ function KnifeCombobox({
   )
 }
 
+function GlovesCard({
+  team,
+  gloves,
+  onSave,
+  glovesSkins,
+}: {
+  team: Team
+  gloves: number | null
+  onSave: (weapon_defindex: number) => Promise<void>
+  glovesSkins: Record<number, { paint_name: string; image_url: string }>
+}) {
+  const glovesOptions = useMemo(() => {
+    return Object.entries(glovesSkins).map(([k, v]) => ({ weapon_defindex: Number(k), name: v.paint_name }))
+  }, [glovesSkins])
+
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(gloves?.toString() ?? "0")
+
+  useEffect(() => {
+    setSelected(gloves?.toString() ?? "0")
+  }, [gloves])
+
+  const selectedLabel = useMemo(() => {
+    if (selected === "0" || !selected) return "Gloves | Default"
+    const foundGlove = glovesOptions.find((g) => g.weapon_defindex === Number(selected))
+    return foundGlove?.name ?? selected
+  }, [selected, glovesOptions])
+
+  const currentImage = useMemo(() => {
+    const gloveData = glovesSkins[Number(selected)]
+    return gloveData?.image_url ?? ""
+  }, [selected, glovesSkins])
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Gloves</CardTitle>
+        <CardDescription>
+          Time atual: {team === TEAM.T ? "T" : "CT"}. Salva apenas neste time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="h-32 w-full rounded-md border bg-secondary/40 flex items-center justify-center overflow-hidden">
+          {currentImage && <img src={currentImage} alt={selectedLabel} className="h-full object-contain" />}
+        </div>
+
+        <div className="text-sm">
+          Atual: <span className="font-medium">{selectedLabel}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" type="button">
+                {selectedLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Command>
+                <CommandInput placeholder="Buscar gloves..." />
+                <CommandList>
+                  <CommandEmpty>Nenhuma glove.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setSelected("0")
+                        setOpen(false)
+                      }}
+                    >
+                      Gloves | Default
+                    </CommandItem>
+                    {glovesOptions.map((g) => (
+                      <CommandItem
+                        key={g.weapon_defindex}
+                        onSelect={() => {
+                          setSelected(String(g.weapon_defindex))
+                          setOpen(false)
+                        }}
+                      >
+                        {g.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="default"
+            onClick={async () => {
+              await onSave(Number(selected))
+            }}
+          >
+            Salvar para {team === TEAM.T ? "T" : "CT"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function WeaponCard({
   team,
   weapon_defindex,
@@ -393,7 +517,6 @@ function WeaponCard({
     return Object.entries(skins).map(([k, v]) => ({ paintId: Number(k), name: v.paint_name }))
   }, [skins])
 
-  // Use paintId do estado local para mostrar preview imediato
   const currentSkin = skins[paintId]
   const currentImage = currentSkin?.image_url ?? defaultImage
   const currentName = currentSkin?.paint_name ?? defaultName
