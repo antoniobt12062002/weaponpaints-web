@@ -6,27 +6,35 @@ async function verifySteamOpenID(
 ): Promise<{ steamid: string; name: string; avatar: string } | null> {
   console.log("[v0] Verifying Steam OpenID response")
   
-  const verifyParams = new URLSearchParams({
-    ...Object.fromEntries(openidParams),
-    "openid.mode": "check_auth",
-  })
+  // Build verification request with signed parameters
+  const verifyParams = new URLSearchParams()
+  verifyParams.set("openid.ns", "http://specs.openid.net/auth/2.0")
+  verifyParams.set("openid.mode", "check_auth")
+  
+  // Copy all parameters from Steam's response
+  for (const [key, value] of openidParams.entries()) {
+    verifyParams.set(key, value)
+  }
 
-  console.log("[v0] Sending verify request to Steam")
+  console.log("[v0] Sending verify request to Steam with params:", Array.from(verifyParams.keys()))
   
   const response = await fetch("https://steamcommunity.com/openid/login", {
     method: "POST",
-    body: verifyParams,
+    body: verifyParams.toString(),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
   })
 
   const text = await response.text()
-  console.log("[v0] Steam verification response:", text.substring(0, 100))
+  console.log("[v0] Steam verification response:", text)
 
-  if (!text.includes("is_valid:true")) {
-    console.log("[v0] OpenID verification failed")
+  if (!text.match(/is_valid\s*:\s*true/i)) {
+    console.log("[v0] OpenID verification failed - is_valid not true")
     return null
   }
 
-  const identity = openidParams.get("openid.identity") || ""
+  const identity = openidParams.get("openid.identity") || openidParams.get("openid.claimed_id") || ""
   console.log("[v0] OpenID identity:", identity)
   
   const steamidMatch = identity.match(/\/(\d+)$/)
@@ -88,8 +96,8 @@ export async function GET(request: Request) {
 
   console.log("[v0] Search params keys:", Array.from(params.keys()))
 
-  if (!params.get("openid.identity")) {
-    console.log("[v0] No openid.identity param found")
+  if (!params.get("openid.identity") && !params.get("openid.claimed_id")) {
+    console.log("[v0] No openid.identity or openid.claimed_id param found")
     redirect("/?error=invalid_steam_response")
   }
 
@@ -109,6 +117,7 @@ export async function GET(request: Request) {
   
   redirect("/loadout")
 }
+
 
 
 
