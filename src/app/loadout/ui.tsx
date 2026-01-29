@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SteamLoading } from "@/components/steam-loading"
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ export default function LoadoutClient() {
   const [team, setTeam] = useState<Team>(TEAM.T)
   const [data, setData] = useState<LoadoutResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [weaponFilter, setWeaponFilter] = useState("")
 
   const { weapons, skinsByWeapon } = useMemo(() => buildCatalog(), [])
@@ -88,97 +90,118 @@ export default function LoadoutClient() {
   }, [weapons, weaponFilter])
 
   async function saveKnife(targetTeam: Team, knife: string) {
-    const r = await fetch("/api/loadout/knife", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weapon_team: targetTeam, knife }),
-    })
-    if (!r.ok) throw new Error("save_knife_failed")
+    setSaving(true)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      
+      const r = await fetch("/api/loadout/knife", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weapon_team: targetTeam, knife }),
+      })
+      if (!r.ok) throw new Error("save_knife_failed")
 
-    setData((prev) => {
-      if (!prev) return prev
-      const key = targetTeam === TEAM.T ? "2" : "3"
-      return {
-        ...prev,
-        loadout: {
-          ...prev.loadout,
-          [key]: { ...prev.loadout[key], knife },
-        },
-      }
-    })
+      setData((prev) => {
+        if (!prev) return prev
+        const key = targetTeam === TEAM.T ? "2" : "3"
+        return {
+          ...prev,
+          loadout: {
+            ...prev.loadout,
+            [key]: { ...prev.loadout[key], knife },
+          },
+        }
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveGloves(targetTeam: Team, weapon_defindex: number, weapon_paint_id: number) {
-    // Salva em wp_player_skins (para o paint/skin específico)
-    const r1 = await fetch("/api/loadout/weapon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        weapon_team: targetTeam, 
-        weapon_defindex, 
-        weapon_paint_id,
-        weapon_wear: 0,
-        weapon_seed: 0
-      }),
-    })
-    if (!r1.ok) throw new Error("save_gloves_skins_failed")
+    setSaving(true)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      
+      // Salva em wp_player_skins (para o paint/skin específico)
+      const r1 = await fetch("/api/loadout/weapon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          weapon_team: targetTeam, 
+          weapon_defindex, 
+          weapon_paint_id,
+          weapon_wear: 0,
+          weapon_seed: 0
+        }),
+      })
+      if (!r1.ok) throw new Error("save_gloves_skins_failed")
 
-    // Salva em wp_player_gloves (para o weapon_defindex)
-    const r2 = await fetch("/api/loadout/gloves", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        weapon_team: targetTeam, 
-        weapon_defindex
-      }),
-    })
-    if (!r2.ok) throw new Error("save_gloves_table_failed")
+      // Salva em wp_player_gloves (para o weapon_defindex)
+      const r2 = await fetch("/api/loadout/gloves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          weapon_team: targetTeam, 
+          weapon_defindex
+        }),
+      })
+      if (!r2.ok) throw new Error("save_gloves_table_failed")
 
-    setData((prev) => {
-      if (!prev) return prev
-      const key = targetTeam === TEAM.T ? "2" : "3"
-      return {
-        ...prev,
-        loadout: {
-          ...prev.loadout,
-          [key]: { 
-            ...prev.loadout[key], 
-            gloves: { weapon_defindex, weapon_paint_id } 
+      setData((prev) => {
+        if (!prev) return prev
+        const key = targetTeam === TEAM.T ? "2" : "3"
+        return {
+          ...prev,
+          loadout: {
+            ...prev.loadout,
+            [key]: { 
+              ...prev.loadout[key], 
+              gloves: { weapon_defindex, weapon_paint_id } 
+            },
           },
-        },
-      }
-    })
+        }
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveWeapon(targetTeam: Team, payload: { weapon_defindex: number; weapon_paint_id: number; weapon_wear: number; weapon_seed: number }) {
-    const r = await fetch("/api/loadout/weapon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weapon_team: targetTeam, ...payload }),
-    })
-    if (!r.ok) throw new Error("save_weapon_failed")
+    setSaving(true)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      
+      const r = await fetch("/api/loadout/weapon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weapon_team: targetTeam, ...payload }),
+      })
+      if (!r.ok) throw new Error("save_weapon_failed")
 
-    setData((prev) => {
-      if (!prev) return prev
-      const key = targetTeam === TEAM.T ? "2" : "3"
-      return {
-        ...prev,
-        loadout: {
-          ...prev.loadout,
-          [key]: {
-            ...prev.loadout[key],
-            skins: {
-              ...prev.loadout[key].skins,
-              [payload.weapon_defindex]: {
-                weapon_paint_id: payload.weapon_paint_id,
-                weapon_wear: payload.weapon_wear,
-                weapon_seed: payload.weapon_seed,
+      setData((prev) => {
+        if (!prev) return prev
+        const key = targetTeam === TEAM.T ? "2" : "3"
+        return {
+          ...prev,
+          loadout: {
+            ...prev.loadout,
+            [key]: {
+              ...prev.loadout[key],
+              skins: {
+                ...prev.loadout[key].skins,
+                [payload.weapon_defindex]: {
+                  weapon_paint_id: payload.weapon_paint_id,
+                  weapon_wear: payload.weapon_wear,
+                  weapon_seed: payload.weapon_seed,
+                },
               },
             },
           },
-        },
-      }
-    })
+        }
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -190,6 +213,10 @@ export default function LoadoutClient() {
         <Skeleton className="h-96 w-full" />
       </main>
     )
+  }
+
+  if (saving) {
+    return <SteamLoading message="Salvando..." />
   }
 
   if (!data || !current) {
