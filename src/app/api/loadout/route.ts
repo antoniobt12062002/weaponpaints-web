@@ -1,31 +1,29 @@
-import { auth } from "@/auth"
+import { getSession } from "@/lib/session"
 import { getPool } from "@/lib/db"
 
 type TeamKey = "2" | "3"
 
 export async function GET() {
-  const session = await auth()
-  const steamid = (session?.user as any)?.steamid as string | undefined
-
-  if (!steamid) {
+  const session = await getSession()
+  
+  if (!session?.steamid) {
     return Response.json({ error: "unauthorized" }, { status: 401 })
   }
 
   const pool = getPool()
 
-  // Reads for BOTH teams. We do not group or MAX here because T and CT can differ.
   const [skinsRows] = await pool.query(
     `SELECT weapon_team, weapon_defindex, weapon_paint_id, weapon_wear, weapon_seed
      FROM wp_player_skins
      WHERE steamid = ?`,
-    [steamid]
+    [session.steamid]
   )
 
   const [knifeRows] = await pool.query(
     `SELECT weapon_team, knife
      FROM wp_player_knife
      WHERE steamid = ?`,
-    [steamid]
+    [session.steamid]
   )
 
   const loadout: Record<TeamKey, { knife: string | null; skins: Record<number, any> }> = {
@@ -48,5 +46,5 @@ export async function GET() {
     }
   }
 
-  return Response.json({ steamid, loadout })
+  return Response.json({ steamid: session.steamid, loadout })
 }
