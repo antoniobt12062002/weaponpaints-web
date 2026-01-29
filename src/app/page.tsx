@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { SteamAuthButton } from "@/components/steam-auth-button"
 
 export const metadata = {
   title: "PeladosCM - Gerenciador de Skins CS2",
@@ -62,11 +63,7 @@ export default async function Page() {
             {!session ? (
               <div className="space-y-3 pt-4">
                 <p className="text-sm text-slate-500">Conecte-se com sua conta Steam para começar</p>
-                <Link href="/api/steam-auth">
-                  <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-6">
-                    Entrar com Steam
-                  </Button>
-                </Link>
+                <SteamAuthButton />
               </div>
             ) : (
               <div className="space-y-3 pt-4">
