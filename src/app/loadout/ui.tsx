@@ -109,8 +109,8 @@ export default function LoadoutClient() {
   }
 
   async function saveGloves(targetTeam: Team, weapon_defindex: number, weapon_paint_id: number) {
-    // Gloves são salvas como skins normais em wp_player_skins
-    const r = await fetch("/api/loadout/weapon", {
+    // Salva em wp_player_skins (para o paint/skin específico)
+    const r1 = await fetch("/api/loadout/weapon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -121,7 +121,18 @@ export default function LoadoutClient() {
         weapon_seed: 0
       }),
     })
-    if (!r.ok) throw new Error("save_gloves_failed")
+    if (!r1.ok) throw new Error("save_gloves_skins_failed")
+
+    // Salva em wp_player_gloves (para o weapon_defindex)
+    const r2 = await fetch("/api/loadout/gloves", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        weapon_team: targetTeam, 
+        weapon_defindex
+      }),
+    })
+    if (!r2.ok) throw new Error("save_gloves_table_failed")
 
     setData((prev) => {
       if (!prev) return prev
