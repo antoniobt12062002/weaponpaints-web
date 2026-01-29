@@ -1,4 +1,4 @@
-import { auth, signOut } from "@/auth"
+import { getSession } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -8,10 +8,7 @@ export const metadata = {
 }
 
 export default async function Page() {
-  const session = await auth()
-  const steamid = (session?.user as any)?.steamid as string | undefined
-  const userName = session?.user?.name || "Jogador"
-  const userImage = session?.user?.image
+  const session = await getSession()
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -24,13 +21,8 @@ export default async function Page() {
             </div>
             <h1 className="text-xl font-bold text-white">CS2 Paints</h1>
           </div>
-          {steamid && (
-            <form
-              action={async () => {
-                "use server"
-                await signOut({ redirectTo: "/" })
-              }}
-            >
+          {session && (
+            <form action="/api/logout" method="POST">
               <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
                 Sair
               </Button>
@@ -67,21 +59,24 @@ export default async function Page() {
               </div>
             </div>
 
-            {!steamid ? (
+            {!session ? (
               <div className="space-y-3 pt-4">
                 <p className="text-sm text-slate-500">Conecte-se com sua conta Steam para começar</p>
-                <Link href="/api/steam-auth" className="inline-block">
+                <Link href="/api/steam-auth">
                   <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-6">
                     Entrar com Steam
                   </Button>
                 </Link>
               </div>
             ) : (
-              <Link href="/loadout" className="inline-block">
-                <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-6">
-                  Ir para Loadout
-                </Button>
-              </Link>
+              <div className="space-y-3 pt-4">
+                <p className="text-sm text-slate-400">Bem-vindo, {session.name}!</p>
+                <Link href="/loadout">
+                  <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-6">
+                    Ir para Loadout
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
 
