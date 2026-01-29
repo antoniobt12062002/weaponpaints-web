@@ -63,6 +63,33 @@ export function buildGlovesCatalog() {
   return gloves
 }
 
+export function buildAllGlovesFlat() {
+  const rows = glovesJson as unknown as GloveRow[]
+  const allGloves: Record<number, { paint_name: string; image_url: string; weapon_defindex: number }> = {}
+
+  for (const row of rows) {
+    // Use weapon_defindex diretamente como ID único
+    allGloves[row.weapon_defindex] = {
+      paint_name: row.paint_name,
+      image_url: row.image,
+      weapon_defindex: row.weapon_defindex,
+    }
+  }
+
+  return allGloves
+}
+
+export function buildAllGloves() {
+  const rows = glovesJson as unknown as GloveRow[]
+  // Retorna gloves agrupadas por weapon_defindex, cada uma com seus paints
+  return buildGlovesCatalog()
+}
+
+export function getGloveByDefindexAndPaint(weapon_defindex: number, paint_id: number) {
+  const glovesCatalog = buildGlovesCatalog()
+  return glovesCatalog[weapon_defindex]?.[paint_id] ?? null
+}
+
 export const WEAR_PRESETS = [
   { label: "Factory New", value: 0.0 },
   { label: "Minimal Wear", value: 0.07 },

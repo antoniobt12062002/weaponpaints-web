@@ -26,7 +26,7 @@ type Team = 2 | 3
 
 type TeamLoadout = {
   knife: string | null
-  gloves: number | null
+  gloves: { weapon_defindex: number; weapon_paint_id: number } | null
   skins: Record<number, { weapon_paint_id: number; weapon_wear: number; weapon_seed: number }>
 }
 
@@ -49,7 +49,6 @@ export default function LoadoutClient() {
   const [weaponFilter, setWeaponFilter] = useState("")
 
   const { weapons, skinsByWeapon } = useMemo(() => buildCatalog(), [])
-  const glovesSkinsByWeapon = useMemo(() => buildGlovesCatalog(), [])
 
   useEffect(() => {
     let active = true
@@ -109,11 +108,18 @@ export default function LoadoutClient() {
     })
   }
 
-  async function saveGloves(targetTeam: Team, weapon_defindex: number) {
-    const r = await fetch("/api/loadout/gloves", {
+  async function saveGloves(targetTeam: Team, weapon_defindex: number, weapon_paint_id: number) {
+    // Gloves são salvas como skins normais em wp_player_skins
+    const r = await fetch("/api/loadout/weapon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weapon_team: targetTeam, weapon_defindex }),
+      body: JSON.stringify({ 
+        weapon_team: targetTeam, 
+        weapon_defindex, 
+        weapon_paint_id,
+        weapon_wear: 0,
+        weapon_seed: 0
+      }),
     })
     if (!r.ok) throw new Error("save_gloves_failed")
 
@@ -124,7 +130,10 @@ export default function LoadoutClient() {
         ...prev,
         loadout: {
           ...prev.loadout,
-          [key]: { ...prev.loadout[key], gloves: weapon_defindex },
+          [key]: { 
+            ...prev.loadout[key], 
+            gloves: { weapon_defindex, weapon_paint_id } 
+          },
         },
       }
     })
@@ -210,15 +219,15 @@ export default function LoadoutClient() {
       <GlovesCard
         team={team}
         gloves={current.gloves}
-        onSave={async (weapon_defindex) => {
+        onSave={async (weapon_defindex, weapon_paint_id) => {
           try {
-            await saveGloves(team, weapon_defindex)
+            await saveGloves(team, weapon_defindex, weapon_paint_id)
             toast.success(team === TEAM.T ? "Gloves salvas para T" : "Gloves salvas para CT")
           } catch {
             toast.error("Erro ao salvar gloves")
           }
         }}
-        glovesSkins={glovesSkinsByWeapon[5032] ?? {}}
+        glovesSkins={buildGlovesCatalog()}
       />
 
       <Card>
@@ -384,31 +393,47 @@ function GlovesCard({
   glovesSkins,
 }: {
   team: Team
-  gloves: number | null
-  onSave: (weapon_defindex: number) => Promise<void>
-  glovesSkins: Record<number, { paint_name: string; image_url: string }>
+  gloves: { weapon_defindex: number; weapon_paint_id: number } | null
+  onSave: (weapon_defindex: number, weapon_paint_id: number) => Promise<void>
+  glovesSkins: Record<number, Record<number, { paint_name: string; image_url: string }>>
 }) {
+  // Flatten all gloves from all weapon_defindex types
   const glovesOptions = useMemo(() => {
-    return Object.entries(glovesSkins).map(([k, v]) => ({ weapon_defindex: Number(k), name: v.paint_name }))
+    const options: { defindex: number; paintId: number; name: string }[] = []
+    for (const [defindex, paints] of Object.entries(glovesSkins)) {
+      for (const [paintId, skin] of Object.entries(paints)) {
+        options.push({
+          defindex: Number(defindex),
+          paintId: Number(paintId),
+          name: skin.paint_name,
+        })
+      }
+    }
+    return options
   }, [glovesSkins])
 
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState(gloves?.toString() ?? "0")
+  const [selectedDefindex, setSelectedDefindex] = useState(gloves?.weapon_defindex ?? 0)
+  const [selectedPaint, setSelectedPaint] = useState(gloves?.weapon_paint_id ?? 0)
 
   useEffect(() => {
-    setSelected(gloves?.toString() ?? "0")
+    setSelectedDefindex(gloves?.weapon_defindex ?? 0)
+    setSelectedPaint(gloves?.weapon_paint_id ?? 0)
   }, [gloves])
 
   const selectedLabel = useMemo(() => {
-    if (selected === "0" || !selected) return "Gloves | Default"
-    const foundGlove = glovesOptions.find((g) => g.weapon_defindex === Number(selected))
-    return foundGlove?.name ?? selected
-  }, [selected, glovesOptions])
+    if (selectedDefindex === 0) return "Gloves | Default"
+    const foundGlove = glovesOptions.find(
+      (g) => g.defindex === selectedDefindex && g.paintId === selectedPaint
+    )
+    return foundGlove?.name ?? "Gloves | Default"
+  }, [selectedDefindex, selectedPaint, glovesOptions])
 
   const currentImage = useMemo(() => {
-    const gloveData = glovesSkins[Number(selected)]
+    if (selectedDefindex === 0) return ""
+    const gloveData = glovesSkins[selectedDefindex]?.[selectedPaint]
     return gloveData?.image_url ?? ""
-  }, [selected, glovesSkins])
+  }, [selectedDefindex, selectedPaint, glovesSkins])
 
   return (
     <Card>
@@ -442,7 +467,8 @@ function GlovesCard({
                   <CommandGroup>
                     <CommandItem
                       onSelect={() => {
-                        setSelected("0")
+                        setSelectedDefindex(0)
+                        setSelectedPaint(0)
                         setOpen(false)
                       }}
                     >
@@ -450,9 +476,10 @@ function GlovesCard({
                     </CommandItem>
                     {glovesOptions.map((g) => (
                       <CommandItem
-                        key={g.weapon_defindex}
+                        key={`${g.defindex}-${g.paintId}`}
                         onSelect={() => {
-                          setSelected(String(g.weapon_defindex))
+                          setSelectedDefindex(g.defindex)
+                          setSelectedPaint(g.paintId)
                           setOpen(false)
                         }}
                       >
@@ -468,7 +495,7 @@ function GlovesCard({
           <Button
             variant="default"
             onClick={async () => {
-              await onSave(Number(selected))
+              await onSave(selectedDefindex, selectedPaint)
             }}
           >
             Salvar para {team === TEAM.T ? "T" : "CT"}
