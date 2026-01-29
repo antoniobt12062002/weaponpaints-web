@@ -53,23 +53,20 @@ export default function LoadoutClient() {
   const { weapons, skinsByWeapon } = useMemo(() => buildCatalog(), [])
 
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    fetch("/api/loadout", { cache: "no-store" })
-      .then(async (r) => {
-        if (!r.ok) throw new Error("failed")
-        return r.json()
-      })
-      .then((json: LoadoutResponse) => {
-        if (active) setData(json)
-      })
-      .catch(() => toast.error("Erro ao carregar loadout"))
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => {
-      active = false
+    async function fetchData() {
+      const r = await fetch("/api/loadout")
+      if (!r.ok) {
+        setLoading(false)
+        return
+      }
+      const json = await r.json()
+      console.log("[v0] Loadout data from API:", json)
+      console.log("[v0] Team 2 gloves:", json.loadout?.["2"]?.gloves)
+      console.log("[v0] Team 3 gloves:", json.loadout?.["3"]?.gloves)
+      setData(json)
+      setLoading(false)
     }
+    fetchData()
   }, [])
 
   const current = useMemo(() => {
@@ -215,16 +212,14 @@ export default function LoadoutClient() {
     )
   }
 
-  if (saving) {
-    return <SteamLoading message="Salvando..." />
-  }
-
   if (!data || !current) {
     return <main className="mx-auto max-w-6xl p-6">Você precisa estar logado.</main>
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6 space-y-4">
+    <>
+      {saving && <SteamLoading message="Salvando..." />}
+      <main className="mx-auto max-w-6xl p-6 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Loadout - PeladosCM</h1>
@@ -313,6 +308,7 @@ export default function LoadoutClient() {
         </CardContent>
       </Card>
     </main>
+    </>
   )
 }
 
@@ -455,6 +451,9 @@ function GlovesCard({
   const [selectedPaint, setSelectedPaint] = useState(gloves?.weapon_paint_id ?? 0)
 
   useEffect(() => {
+    console.log("[v0] GlovesCard gloves data:", gloves)
+    console.log("[v0] GlovesCard setting defindex:", gloves?.weapon_defindex ?? 0)
+    console.log("[v0] GlovesCard setting paint:", gloves?.weapon_paint_id ?? 0)
     setSelectedDefindex(gloves?.weapon_defindex ?? 0)
     setSelectedPaint(gloves?.weapon_paint_id ?? 0)
   }, [gloves])
