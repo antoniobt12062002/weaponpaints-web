@@ -19,22 +19,20 @@ export function SteamLoading({ message = "Salvando..." }: { message?: string }) 
   }, [])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-20 w-20">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
+      <div className="flex flex-col items-center gap-2 bg-slate-900/90 rounded-lg p-4 pointer-events-auto shadow-2xl border border-cyan-500/20">
+        <div className="relative h-12 w-12">
           <img
             src={images[currentImage]}
             alt="Loading"
             className="h-full w-full object-contain animate-pulse"
           />
         </div>
-        <div className="flex flex-col items-center gap-2">
-          <div className="text-base font-semibold text-white">{message}</div>
-          <div className="flex gap-1">
-            <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "0ms" }} />
-            <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "150ms" }} />
-            <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "300ms" }} />
-          </div>
+        <div className="text-xs font-medium text-white">{message}</div>
+        <div className="flex gap-1">
+          <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+          <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+          <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       </div>
     </div>
