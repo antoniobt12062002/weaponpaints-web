@@ -81,19 +81,13 @@ export function buildAllGlovesFlat() {
 
 export function buildAllGloves() {
   const rows = glovesJson as unknown as GloveRow[]
-  const allGloves: Record<number, { paint_name: string; image_url: string }> = {}
+  // Retorna gloves agrupadas por weapon_defindex, cada uma com seus paints
+  return buildGlovesCatalog()
+}
 
-  for (const row of rows) {
-    // Pega apenas a primeira ocorrência de cada weapon_defindex
-    if (!allGloves[row.weapon_defindex]) {
-      allGloves[row.weapon_defindex] = {
-        paint_name: row.paint_name,
-        image_url: row.image,
-      }
-    }
-  }
-
-  return allGloves
+export function getGloveByDefindexAndPaint(weapon_defindex: number, paint_id: number) {
+  const glovesCatalog = buildGlovesCatalog()
+  return glovesCatalog[weapon_defindex]?.[paint_id] ?? null
 }
 
 export const WEAR_PRESETS = [

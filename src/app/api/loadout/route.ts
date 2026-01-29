@@ -26,14 +26,7 @@ export async function GET() {
     [session.steamid]
   )
 
-  const [glovesRows] = await pool.query(
-    `SELECT weapon_team, weapon_defindex
-     FROM wp_player_gloves
-     WHERE steamid = ?`,
-    [session.steamid]
-  )
-
-  const loadout: Record<TeamKey, { knife: string | null; gloves: number | null; skins: Record<number, any> }> = {
+  const loadout: Record<TeamKey, { knife: string | null; gloves: { weapon_defindex: number; weapon_paint_id: number } | null; skins: Record<number, any> }> = {
     "2": { knife: null, gloves: null, skins: {} },
     "3": { knife: null, gloves: null, skins: {} },
   }
@@ -43,18 +36,24 @@ export async function GET() {
     if (team === "2" || team === "3") loadout[team].knife = row.knife
   }
 
-  for (const row of glovesRows as any[]) {
-    const team = String(row.weapon_team) as TeamKey
-    if (team === "2" || team === "3") loadout[team].gloves = row.weapon_defindex
-  }
-
   for (const row of skinsRows as any[]) {
     const team = String(row.weapon_team) as TeamKey
     if (team !== "2" && team !== "3") continue
-    loadout[team].skins[row.weapon_defindex] = {
-      weapon_paint_id: row.weapon_paint_id,
-      weapon_wear: Number(row.weapon_wear),
-      weapon_seed: Number(row.weapon_seed),
+    
+    const defindex = row.weapon_defindex
+    
+    // Gloves tem weapon_defindex entre 5028-5035
+    if (defindex >= 5028 && defindex <= 5035) {
+      loadout[team].gloves = {
+        weapon_defindex: defindex,
+        weapon_paint_id: row.weapon_paint_id,
+      }
+    } else {
+      loadout[team].skins[defindex] = {
+        weapon_paint_id: row.weapon_paint_id,
+        weapon_wear: Number(row.weapon_wear),
+        weapon_seed: Number(row.weapon_seed),
+      }
     }
   }
 
