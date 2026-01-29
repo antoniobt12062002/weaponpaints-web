@@ -63,6 +63,20 @@ export function buildGlovesCatalog() {
   return gloves
 }
 
+export function buildAllGloves() {
+  const rows = glovesJson as unknown as GloveRow[]
+  const allGloves: Record<number, { paint_name: string; image_url: string }> = {}
+
+  for (const row of rows) {
+    allGloves[row.weapon_defindex] = {
+      paint_name: row.paint_name,
+      image_url: row.image,
+    }
+  }
+
+  return allGloves
+}
+
 export const WEAR_PRESETS = [
   { label: "Factory New", value: 0.0 },
   { label: "Minimal Wear", value: 0.07 },
