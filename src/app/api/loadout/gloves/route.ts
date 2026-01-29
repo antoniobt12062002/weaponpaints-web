@@ -4,7 +4,7 @@ import { z } from "zod"
 
 const schema = z.object({
   weapon_team: z.union([z.literal(2), z.literal(3)]),
-  gloves: z.string().min(1).max(64),
+  weapon_defindex: z.number().int().min(0),
 })
 
 export async function POST(req: Request) {
@@ -18,10 +18,10 @@ export async function POST(req: Request) {
   const pool = getPool()
 
   await pool.query(
-    `INSERT INTO wp_player_gloves (steamid, weapon_team, gloves)
+    `INSERT INTO wp_player_gloves (steamid, weapon_team, weapon_defindex)
      VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE gloves = VALUES(gloves)`,
-    [session.steamid, body.weapon_team, body.gloves]
+     ON DUPLICATE KEY UPDATE weapon_defindex = VALUES(weapon_defindex)`,
+    [session.steamid, body.weapon_team, body.weapon_defindex]
   )
 
   return Response.json({ ok: true })
