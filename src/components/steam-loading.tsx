@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-export function SteamLoading() {
+export function SteamLoading({ message = "Salvando..." }: { message?: string }) {
   const [currentImage, setCurrentImage] = useState(0)
 
   const images = [
@@ -19,9 +19,9 @@ export function SteamLoading() {
   }, [])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
-      <div className="flex flex-col items-center gap-6">
-        <div className="relative h-32 w-32">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-20 w-20">
           <img
             src={images[currentImage]}
             alt="Loading"
@@ -29,7 +29,7 @@ export function SteamLoading() {
           />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="text-lg font-semibold text-white">Conectando com Steam...</div>
+          <div className="text-base font-semibold text-white">{message}</div>
           <div className="flex gap-1">
             <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "0ms" }} />
             <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: "150ms" }} />

@@ -10,15 +10,15 @@ export function SteamAuthButton() {
   const handleClick = async () => {
     setIsLoading(true)
     
-    // Espera mínimo de 5 segundos
-    await new Promise((resolve) => setTimeout(resolve, 5000))
+    // Espera mínimo de 3 segundos
+    await new Promise((resolve) => setTimeout(resolve, 3000))
     
     // Redireciona para autenticação Steam
     window.location.href = "/api/steam-auth"
   }
 
   if (isLoading) {
-    return <SteamLoading />
+    return <SteamLoading message="Conectando com Steam..." />
   }
 
   return (
