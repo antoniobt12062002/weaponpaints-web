@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export const metadata = {
-  title: "CS2 WeaponPaints - Gerenciador de Skins",
-  description: "Configure suas skins e knives do Counter-Strike 2 por time",
+  title: "PeladosCM - Gerenciador de Skins CS2",
+  description: "Configure suas skins, knives e gloves para o servidor PeladosCM",
 }
 
 export default async function Page() {
@@ -17,9 +17,9 @@ export default async function Page() {
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-              <span className="text-sm font-bold text-white">CP</span>
+              <span className="text-sm font-bold text-white">PC</span>
             </div>
-            <h1 className="text-xl font-bold text-white">CS2 Paints</h1>
+            <h1 className="text-xl font-bold text-white">PeladosCM</h1>
           </div>
           {session && (
             <form action="/api/logout" method="POST">
@@ -44,7 +44,7 @@ export default async function Page() {
                 </span>
               </h2>
               <p className="text-lg text-slate-400">
-                Gerencie suas skins e knives do Counter-Strike 2 separadas por time. Escolha o visual perfeito para T (Terrorists) e CT (Counter-Terrorists).
+                Configure suas skins, knives e gloves do Counter-Strike 2 para o servidor da comunidade PeladosCM. Escolha o visual perfeito para T (Terrorists) e CT (Counter-Terrorists).
               </p>
             </div>
 
@@ -113,7 +113,7 @@ export default async function Page() {
       <div className="border-t border-slate-800 bg-slate-950/50 backdrop-blur">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <p className="text-center text-sm text-slate-500">
-            CS2 WeaponPaints © 2024 - Gerenciador de Skins para Counter-Strike 2
+            PeladosCM © 2024 - Gerenciador de Skins para servidor da comunidade
           </p>
         </div>
       </div>
