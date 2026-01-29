@@ -27,13 +27,13 @@ export async function GET() {
   )
 
   const [glovesRows] = await pool.query(
-    `SELECT weapon_team, gloves
+    `SELECT weapon_team, weapon_defindex
      FROM wp_player_gloves
      WHERE steamid = ?`,
     [session.steamid]
   )
 
-  const loadout: Record<TeamKey, { knife: string | null; gloves: string | null; skins: Record<number, any> }> = {
+  const loadout: Record<TeamKey, { knife: string | null; gloves: number | null; skins: Record<number, any> }> = {
     "2": { knife: null, gloves: null, skins: {} },
     "3": { knife: null, gloves: null, skins: {} },
   }
@@ -45,7 +45,7 @@ export async function GET() {
 
   for (const row of glovesRows as any[]) {
     const team = String(row.weapon_team) as TeamKey
-    if (team === "2" || team === "3") loadout[team].gloves = row.gloves
+    if (team === "2" || team === "3") loadout[team].gloves = row.weapon_defindex
   }
 
   for (const row of skinsRows as any[]) {
