@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { TEAM, WEAR_PRESETS, buildCatalog } from "@/lib/skins"
+import { TEAM, WEAR_PRESETS, buildCatalog, buildGlovesCatalog } from "@/lib/skins"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -26,6 +26,7 @@ type Team = 2 | 3
 
 type TeamLoadout = {
   knife: string | null
+  gloves: string | null
   skins: Record<number, { weapon_paint_id: number; weapon_wear: number; weapon_seed: number }>
 }
 
@@ -48,6 +49,7 @@ export default function LoadoutClient() {
   const [weaponFilter, setWeaponFilter] = useState("")
 
   const { weapons, skinsByWeapon } = useMemo(() => buildCatalog(), [])
+  const glovesSkinsByWeapon = useMemo(() => buildGlovesCatalog(), [])
 
   useEffect(() => {
     let active = true
@@ -102,6 +104,27 @@ export default function LoadoutClient() {
         loadout: {
           ...prev.loadout,
           [key]: { ...prev.loadout[key], knife },
+        },
+      }
+    })
+  }
+
+  async function saveGloves(targetTeam: Team, gloves: string) {
+    const r = await fetch("/api/loadout/gloves", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weapon_team: targetTeam, gloves }),
+    })
+    if (!r.ok) throw new Error("save_gloves_failed")
+
+    setData((prev) => {
+      if (!prev) return prev
+      const key = targetTeam === TEAM.T ? "2" : "3"
+      return {
+        ...prev,
+        loadout: {
+          ...prev.loadout,
+          [key]: { ...prev.loadout[key], gloves },
         },
       }
     })
@@ -188,6 +211,26 @@ export default function LoadoutClient() {
             toast.error("Erro ao salvar knife")
           }
         }}
+      />
+
+      <GlovesCard
+        team={team}
+        gloves={current.gloves}
+        onSave={async (gloves, applyBoth) => {
+          try {
+            if (applyBoth) {
+              await saveGloves(TEAM.T, gloves)
+              await saveGloves(TEAM.CT, gloves)
+              toast.success("Gloves salvas para T e CT")
+            } else {
+              await saveGloves(team, gloves)
+              toast.success(team === TEAM.T ? "Gloves salvas para T" : "Gloves salvas para CT")
+            }
+          } catch {
+            toast.error("Erro ao salvar gloves")
+          }
+        }}
+        glovesSkins={glovesSkinsByWeapon[5032] ?? {}}
       />
 
       <Card>
@@ -355,6 +398,117 @@ function KnifeCombobox({
   )
 }
 
+function GlovesCard({
+  team,
+  gloves,
+  onSave,
+  glovesSkins,
+}: {
+  team: Team
+  gloves: string | null
+  onSave: (gloves: string, applyBoth: boolean) => Promise<void>
+  glovesSkins: Record<number, { paint_name: string; image_url: string }>
+}) {
+  const glovesOptions = useMemo(() => {
+    return Object.entries(glovesSkins).map(([k, v]) => ({ paintId: Number(k), name: v.paint_name }))
+  }, [glovesSkins])
+
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(gloves ?? "0")
+
+  useEffect(() => {
+    setSelected(gloves ?? "0")
+  }, [gloves])
+
+  const selectedLabel = useMemo(() => {
+    if (selected === "0" || !selected) return "Gloves | Default"
+    const foundGlove = glovesOptions.find((g) => g.paintId === Number(selected))
+    return foundGlove?.name ?? selected
+  }, [selected, glovesOptions])
+
+  const currentImage = useMemo(() => {
+    const gloveData = glovesSkins[Number(selected)]
+    return gloveData?.image_url ?? ""
+  }, [selected, glovesSkins])
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Gloves</CardTitle>
+        <CardDescription>
+          Time atual: {team === TEAM.T ? "T" : "CT"}. weapon_team={team}. Salva apenas neste time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="h-32 w-full rounded-md border bg-secondary/40 flex items-center justify-center overflow-hidden">
+          {currentImage && <img src={currentImage} alt={selectedLabel} className="h-full object-contain" />}
+        </div>
+
+        <div className="text-sm">
+          Atual: <span className="font-medium">{selectedLabel}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" type="button">
+                {selectedLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Command>
+                <CommandInput placeholder="Buscar gloves..." />
+                <CommandList>
+                  <CommandEmpty>Nenhuma glove.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setSelected("0")
+                        setOpen(false)
+                      }}
+                    >
+                      Gloves | Default
+                    </CommandItem>
+                    {glovesOptions.map((g) => (
+                      <CommandItem
+                        key={g.paintId}
+                        onSelect={() => {
+                          setSelected(String(g.paintId))
+                          setOpen(false)
+                        }}
+                      >
+                        {g.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="default"
+            onClick={async () => {
+              await onSave(selected, false)
+            }}
+          >
+            Salvar para {team === TEAM.T ? "T" : "CT"}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              await onSave(selected, true)
+            }}
+          >
+            Aplicar para ambos
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function WeaponCard({
   team,
   weapon_defindex,
@@ -393,7 +547,6 @@ function WeaponCard({
     return Object.entries(skins).map(([k, v]) => ({ paintId: Number(k), name: v.paint_name }))
   }, [skins])
 
-  // Use paintId do estado local para mostrar preview imediato
   const currentSkin = skins[paintId]
   const currentImage = currentSkin?.image_url ?? defaultImage
   const currentName = currentSkin?.paint_name ?? defaultName

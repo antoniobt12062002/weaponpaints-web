@@ -26,14 +26,26 @@ export async function GET() {
     [session.steamid]
   )
 
-  const loadout: Record<TeamKey, { knife: string | null; skins: Record<number, any> }> = {
-    "2": { knife: null, skins: {} },
-    "3": { knife: null, skins: {} },
+  const [glovesRows] = await pool.query(
+    `SELECT weapon_team, gloves
+     FROM wp_player_gloves
+     WHERE steamid = ?`,
+    [session.steamid]
+  )
+
+  const loadout: Record<TeamKey, { knife: string | null; gloves: string | null; skins: Record<number, any> }> = {
+    "2": { knife: null, gloves: null, skins: {} },
+    "3": { knife: null, gloves: null, skins: {} },
   }
 
   for (const row of knifeRows as any[]) {
     const team = String(row.weapon_team) as TeamKey
     if (team === "2" || team === "3") loadout[team].knife = row.knife
+  }
+
+  for (const row of glovesRows as any[]) {
+    const team = String(row.weapon_team) as TeamKey
+    if (team === "2" || team === "3") loadout[team].gloves = row.gloves
   }
 
   for (const row of skinsRows as any[]) {
