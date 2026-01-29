@@ -375,9 +375,6 @@ function WeaponCard({
   onSave: (payload: { weapon_defindex: number; weapon_paint_id: number; weapon_wear: number; weapon_seed: number }) => Promise<void>
 }) {
   const selectedPaintId = selected?.weapon_paint_id ?? 0
-  const selectedSkin = skins[selectedPaintId]
-  const image = selectedSkin?.image_url ?? defaultImage
-  const name = selectedSkin?.paint_name ?? defaultName
 
   const [open, setOpen] = useState(false)
   const [paintOpen, setPaintOpen] = useState(false)
@@ -396,17 +393,21 @@ function WeaponCard({
     return Object.entries(skins).map(([k, v]) => ({ paintId: Number(k), name: v.paint_name }))
   }, [skins])
 
-  const currentSkinName = skins[paintId]?.paint_name ?? "Selecionar skin"
+  // Use paintId do estado local para mostrar preview imediato
+  const currentSkin = skins[paintId]
+  const currentImage = currentSkin?.image_url ?? defaultImage
+  const currentName = currentSkin?.paint_name ?? defaultName
+  const currentSkinName = currentSkin?.paint_name ?? "Selecionar skin"
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="p-4">
         <CardTitle className="text-sm">{weapon_name}</CardTitle>
-        <CardDescription className="text-xs">{name}</CardDescription>
+        <CardDescription className="text-xs">{currentName}</CardDescription>
       </CardHeader>
       <CardContent className="p-4 pt-0 space-y-3">
         <div className="h-28 w-full rounded-md border bg-secondary/40 flex items-center justify-center overflow-hidden">
-          <img src={image} alt={name} className="h-full object-contain" />
+          <img src={currentImage} alt={currentName} className="h-full object-contain" />
         </div>
 
         <Popover open={paintOpen} onOpenChange={setPaintOpen}>
