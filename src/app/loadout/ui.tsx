@@ -218,7 +218,7 @@ export default function LoadoutClient() {
             toast.error("Erro ao salvar gloves")
           }
         }}
-        glovesSkins={glovesSkinsByWeapon[5032] ?? {}}
+        glovesSkins={allGloves}
       />
 
       <Card>

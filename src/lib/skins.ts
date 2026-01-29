@@ -63,14 +63,33 @@ export function buildGlovesCatalog() {
   return gloves
 }
 
+export function buildAllGlovesFlat() {
+  const rows = glovesJson as unknown as GloveRow[]
+  const allGloves: Record<number, { paint_name: string; image_url: string; weapon_defindex: number }> = {}
+
+  for (const row of rows) {
+    // Use weapon_defindex diretamente como ID único
+    allGloves[row.weapon_defindex] = {
+      paint_name: row.paint_name,
+      image_url: row.image,
+      weapon_defindex: row.weapon_defindex,
+    }
+  }
+
+  return allGloves
+}
+
 export function buildAllGloves() {
   const rows = glovesJson as unknown as GloveRow[]
   const allGloves: Record<number, { paint_name: string; image_url: string }> = {}
 
   for (const row of rows) {
-    allGloves[row.weapon_defindex] = {
-      paint_name: row.paint_name,
-      image_url: row.image,
+    // Pega apenas a primeira ocorrência de cada weapon_defindex
+    if (!allGloves[row.weapon_defindex]) {
+      allGloves[row.weapon_defindex] = {
+        paint_name: row.paint_name,
+        image_url: row.image,
+      }
     }
   }
 
